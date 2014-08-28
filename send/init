@@ -1,0 +1,19 @@
+#!/bin/sh
+  
+route add -net 0.0.0.0 netmask 0.0.0.0 gw 172.16.0.1
+route add -net 0.0.0.0 netmask 0.0.0.0 gw 172.16.1.1
+echo 10  p3p1table >> /etc/iproute2/rt_tables
+echo 11  p3p2table >> /etc/iproute2/rt_tables
+ip route add default via 172.16.0.1 dev p3p1 src 172.16.0.2  table p3p1table 
+ip route add default via 172.16.1.1 dev p3p2 src 172.16.1.2  table p3p2table
+ip rule add from 172.16.0.2 table p3p1table
+ip rule add from 172.16.1.2 table p3p2table
+ip route flush cache
+service iptables stop
+tc qdisc add dev p3p1 root handle 1: htb default 12
+tc qdisc add dev p3p2 root handle 2: htb default 12
+tc class add dev p3p1 parent 1: classid 1:12 htb rate 13.5Mbps ceil 13.5Mbps
+tc class add dev p3p2 parent 2: classid 2:12 htb rate 13.5Mbps ceil 13.5Mbps
+ethtool -s p3p1 autoneg off speed 100 duplex full
+ethtool -s p3p2 autoneg off speed 100 duplex full
+
